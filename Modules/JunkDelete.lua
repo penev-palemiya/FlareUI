@@ -121,7 +121,7 @@ local function BeforeLootClick(button)
             return
         end
     end
-    if CursorHasItem() then ClearCursor() end
+    pcall(function() if CursorHasItem() then ClearCursor() end end)
 end
 
 local hooked = setmetatable({}, { __mode = "k" })

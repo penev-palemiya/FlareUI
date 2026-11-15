@@ -31,7 +31,7 @@ function GetCursorInfo()
 end
 function CursorHasItem() return state.cursor ~= nil end
 function ClearCursor() state.cleared = true; state.cursor = nil end
-function DeleteCursorItem() state.deleted = true; state.cursor = nil end
+function DeleteCursorItem() if not state.refuseDelete then state.deleted = true; state.cursor = nil end end
 C_Item = {
     GetItemInfoInstant = function() return state.lootID end,
     GetItemUniquenessByID = function() return state.unique, nil, state.limit, state.category end,
@@ -72,6 +72,9 @@ local function run(name, mutate, expect)
     local ok, err = pcall(click, itemButton)
     assert(ok, name .. ": " .. tostring(err))
     assert((state.deleted == true) == expect, name .. ": deleted=" .. tostring(state.deleted))
+    if name == "delete refused" or name == "cursor mismatch" or name == "loot changed after pickup" then
+        assert(state.cleared, name .. ": cursor not cleared")
+    end
     count = count + 1
 end
 run("general bag", nil, true)
@@ -108,6 +111,7 @@ run("modifier", function() state.modified = true end, false)
 run("cursor occupied", function() state.cursor = {id = 4} end, false)
 run("feature disabled", function() ns.db.profile.tweaks.deleteJunkWhenFull = false end, false)
 run("api error", function() state.apiError = true end, false)
+run("delete refused", function() state.refuseDelete = true end, false)
 run("cursor mismatch", function() state.cursorMismatch = true end, false)
 run("loot changed after pickup", function() state.afterPickup = function() state.quantity = 2 end end, false)
 run("combat after pickup", function() state.afterPickup = function() state.combat = true end end, false)

@@ -109,7 +109,8 @@ local function BeforeLootClick(button)
         local kind, cursorID, cursorLink = GetCursorInfo()
         local free, family = C_Container.GetContainerNumFreeSlots(bag)
         local remaining = C_Container.GetContainerItemInfo(bag, slot)
-        return picked and kind == "item" and cursorID == junk.itemID and cursorLink == junk.link
+        local element = button:GetParent()
+        return picked and element and element.GetSlotIndex and element:GetSlotIndex() == index and kind == "item" and cursorID == junk.itemID and cursorLink == junk.link
             and type(free) == "number" and free > 0 and remaining == nil
             and type(family) == "number" and Compatible(loot.family, family)
             and On() and not InCombatLockdown() and not IsModifiedClick() and SameLoot(loot, Loot(index))

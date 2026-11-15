@@ -17,7 +17,7 @@ function CreateFrame()
     return loader
 end
 local itemButton = { HookScript = function(_, _, fn) click = fn end }
-local element = { GetSlotIndex = function() return 1 end }
+local element = { GetSlotIndex = function() return state.index or 1 end }
 function itemButton:GetParent() return element end
 LootFrame = { ScrollBox = {} }
 ScrollUtil = { AddAcquiredFrameCallback = function(_, callback) callback({ Item = itemButton }) end }
@@ -114,6 +114,7 @@ run("api error", function() state.apiError = true end, false)
 run("delete refused", function() state.refuseDelete = true end, false)
 run("cursor mismatch", function() state.cursorMismatch = true end, false)
 run("loot changed after pickup", function() state.afterPickup = function() state.quantity = 2 end end, false)
+run("loot row reused after pickup", function() state.afterPickup = function() state.index = 2 end end, false)
 run("combat after pickup", function() state.afterPickup = function() state.combat = true end end, false)
 run("bag changed after pickup", function() state.afterPickup = function() state.bags[0].family = 2 end end, false)
 print = originalPrint

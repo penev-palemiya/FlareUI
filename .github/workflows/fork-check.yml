@@ -1,0 +1,19 @@
+name: Fork static checks
+on:
+  pull_request:
+    branches: [develop, main]
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lua 5.1 parser
+        run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - name: Validate addon paths
+        run: python3 .github/flareui-ci/check-paths.py .
+      - name: Parse Lua 5.1 (approximation, not WoW runtime)
+        run: find . -name '*.lua' -not -path './tools/*' -print0 | xargs -0 -n1 luac5.1 -p
+      - name: Scan tracked paths and obvious secrets
+        run: python3 .github/flareui-ci/privacy.py

@@ -108,6 +108,11 @@ for _ = 1, 15 do frame.scripts.OnUpdate(frame, 0.02) end
 local fallback
 for _, text in ipairs(frame.fonts) do if text.shown and text.value == "DAMAGE" then fallback = true end end
 assert(fallback)
+frame.scripts.OnEvent(frame, "UNIT_COMBAT", "player", "WOUND", "BLOCK_REDUCED", 42)
+for _ = 1, 30 do if frame.scripts.OnUpdate then frame.scripts.OnUpdate(frame, 0.02) end end
+local block
+for _, text in ipairs(frame.fonts) do if text.shown and text.value == "Block" then block = true end end
+assert(block)
 SlashCmdList.FLAREUI("combattext debug")
 frame.scripts.OnEvent(frame, "UNIT_COMBAT", "player", "secret", "secret", "secret")
 frame.scripts.OnEvent(frame, "UNIT_COMBAT", "player", "WOUND", "secret", "secret")

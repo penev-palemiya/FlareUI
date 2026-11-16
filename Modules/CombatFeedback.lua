@@ -3,16 +3,14 @@ local HUD = {}
 ns.CombatFeedback = HUD
 ns.modules.CombatFeedback = HUD
 
-local WIDTH, HEIGHT, SPACING, SPEED = 280, 132, 22, 70
+local WIDTH, HEIGHT, SPACING, SPEED, LIFE = 220, 180, 24, 120, 1.2
 local MAX_VISIBLE, MAX_PENDING = 6, 24
-local DEFENSE = { BLOCK = true, DODGE = true, PARRY = true, MISS = true, EVADE = true, IMMUNE = true, RESIST = true, ABSORB = true,
-    SPELL_BLOCK = true, SPELL_DODGE = true, SPELL_PARRY = true, SPELL_MISS = true, SPELL_EVADE = true, SPELL_IMMUNE = true,
-    SPELL_RESIST = true, SPELL_ABSORB = true }
-local DAMAGE = { DAMAGE = true, DAMAGE_CRIT = true, SPELL_DAMAGE = true, SPELL_DAMAGE_CRIT = true, DAMAGE_SHIELD = true }
+local DEFENSE = { BLOCK = true, DODGE = true, PARRY = true, MISS = true, RESIST = true, ABSORB = true }
 local frame, hint, db
 local active, pending, pool = {}, {}, {}
 local gap = SPACING / SPEED
-local delay = 0
+local delay, debugEnabled = 0, false
+local debugCounts = {}
 
 local function readable(value)
     if canaccessvalue then return canaccessvalue(value) end
@@ -34,19 +32,18 @@ end
 local function spawn(message)
     if #active >= MAX_VISIBLE then release(table.remove(active, 1)) end
     local line = table.remove(pool)
-    if not line then
-        line = { text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge") }
-        line.text:SetJustifyH("LEFT")
-        line.text:SetShadowOffset(1, -1)
-    end
+    if not line then return end
     line.age = 0
     line.text:SetText(message.text)
     if message.category == "defense" then
         line.text:SetTextColor(0.55, 0.88, 0.62)
         line.x = db.defenseX
-    else
+    elseif message.category == "damage" then
         line.text:SetTextColor(1, 0.30, 0.28)
         line.x = db.damageX
+    else
+        line.text:SetTextColor(0.35, 0.95, 0.45)
+        line.x = db.defenseX
     end
     line.text:ClearAllPoints()
     line.text:SetPoint("BOTTOMLEFT", frame, "BOTTOM", line.x, 0)
@@ -60,13 +57,13 @@ function HUD.Update(self, elapsed)
         local line = active[i]
         line.age = line.age + elapsed
         local y = line.age * SPEED
-        if y >= HEIGHT - SPACING then
+        if line.age >= LIFE then
             release(line)
             table.remove(active, i)
         else
             line.text:ClearAllPoints()
             line.text:SetPoint("BOTTOMLEFT", frame, "BOTTOM", line.x, y)
-            line.text:SetAlpha(math.min(1, (HEIGHT - SPACING - y) / 28))
+            line.text:SetAlpha(math.min(1, (LIFE - line.age) / 0.25))
         end
     end
     delay = math.max(0, delay - elapsed)
@@ -77,16 +74,22 @@ function HUD.Update(self, elapsed)
     if #active == 0 and #pending == 0 then self:SetScript("OnUpdate", nil) end
 end
 
-local function event(_, _, kind)
-    if not readable(kind) or type(kind) ~= "string" then return end
+local function event(_, _, unit, kind, flags, amount)
+    if not db.enabled or not readable(unit) or unit ~= "player" or not readable(kind) or type(kind) ~= "string" then return end
+    if debugEnabled and #kind <= 40 and kind:match("^[A-Z_]+$") then debugCounts[kind] = (debugCounts[kind] or 0) + 1 end
     if DEFENSE[kind] then
-        local key = kind:gsub("^SPELL_", "")
-        local label = _G["COMBAT_TEXT_" .. key] or _G[key]
+        local label = _G["COMBAT_TEXT_" .. kind] or _G[kind]
         if readable(label) and type(label) == "string" then add("defense", label) end
-    elseif DAMAGE[kind] and C_CombatText and C_CombatText.GetCurrentEventInfo then
-        local ok, amount = pcall(C_CombatText.GetCurrentEventInfo)
-        if ok and readable(amount) and type(amount) == "number" and amount > 0 then
-            add("damage", "-" .. tostring(amount))
+    elseif kind == "WOUND" or kind == "HEAL" then
+        if not readable(amount) or amount == nil then
+            add(kind == "WOUND" and "damage" or "heal", kind == "WOUND" and "DAMAGE" or "HEAL")
+        elseif type(amount) == "number" then
+            if amount > 0 then
+                add(kind == "WOUND" and "damage" or "heal", (kind == "WOUND" and "-" or "+") .. tostring(amount))
+            elseif amount == 0 and kind == "WOUND" and readable(flags) and DEFENSE[flags] then
+                local label = _G["COMBAT_TEXT_" .. flags] or _G[flags]
+                if readable(label) and type(label) == "string" then add("defense", label) end
+            end
         end
     end
 end
@@ -94,17 +97,38 @@ end
 function HUD.Command(text)
     local cmd, arg, value = text:match("^%s*(%S*)%s*(%S*)%s*(%S*)%s*$")
     cmd = (cmd or ""):lower()
-    if cmd == "move" then
+    if cmd == "" then
+        db.enabled = not db.enabled
+        if db.enabled then
+            frame:RegisterUnitEvent("UNIT_COMBAT", "player")
+        else
+            frame:UnregisterEvent("UNIT_COMBAT")
+            for _, line in ipairs(active) do release(line) end
+            active, pending, delay = {}, {}, 0
+            frame:SetScript("OnUpdate", nil)
+            frame.moving = false
+            frame:StopMovingOrSizing()
+            frame:EnableMouse(false)
+            hint:Hide()
+        end
+        print("FlareUI combat text: " .. (db.enabled and "on" or "off"))
+    elseif cmd == "debug" then
+        debugEnabled = not debugEnabled
+        print("FlareUI combat text debug: " .. (debugEnabled and "on" or "off"))
+        if not debugEnabled then
+            for kind, count in pairs(debugCounts) do print(kind .. ": " .. count) end
+            debugCounts = {}
+        end
+    elseif cmd == "move" then
         if InCombatLockdown() then print("FlareUI: move unavailable in combat") return end
         frame.moving = not frame.moving
         frame:EnableMouse(frame.moving)
         hint:SetShown(frame.moving)
         if not frame.moving then frame:StopMovingOrSizing() end
     elseif cmd == "test" then
-        add("defense", "DODGE")
         add("damage", "-123")
-        add("defense", "BLOCK")
-        add("damage", "-456")
+        add("heal", "+85")
+        for _, label in ipairs({ "BLOCK", "DODGE", "PARRY", "MISS", "ABSORB", "RESIST" }) do add("defense", label) end
     elseif cmd == "offset" and (arg == "damage" or arg == "defense") then
         local x = tonumber(value)
         if x and x >= -120 and x <= 120 then
@@ -114,7 +138,7 @@ function HUD.Command(text)
             print("FlareUI: offset must be between -120 and 120")
         end
     else
-        print("/fui combattext move | test | offset damage|defense <x>")
+        print("/fui combattext | test | move | debug | offset damage|defense <x>")
     end
 end
 
@@ -142,14 +166,21 @@ function HUD:Init()
     hint:SetPoint("CENTER")
     hint:SetText("Combat Feedback")
     hint:Hide()
-    frame:RegisterEvent("COMBAT_TEXT_UPDATE")
+    for i = 1, MAX_VISIBLE do
+        local line = { text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge") }
+        line.text:SetJustifyH("LEFT")
+        line.text:SetShadowOffset(1, -1)
+        line.text:Hide()
+        pool[#pool + 1] = line
+    end
+    if db.enabled then frame:RegisterUnitEvent("UNIT_COMBAT", "player") end
     frame:SetScript("OnEvent", event)
     C_Timer.After(0, function()
         local previous = SlashCmdList.FLAREUI
         if not previous then return end
         SlashCmdList.FLAREUI = function(message)
-            local sub = message:match("^%s*[Cc][Oo][Mm][Bb][Aa][Tt][Tt][Ee][Xx][Tt]%s*(.*)$")
-            if sub then HUD.Command(sub) else previous(message) end
+            local command, sub = message:match("^%s*(%S+)%s*(.-)%s*$")
+            if command and command:lower() == "combattext" then HUD.Command(sub) else previous(message) end
         end
     end)
 end

@@ -24,17 +24,10 @@
 ## AddonCompartmentFuncOnEnter: FlareUI_OnAddonCompartmentEnter
 ## AddonCompartmentFuncOnLeave: FlareUI_OnAddonCompartmentLeave
 
-# ----------------------------------------------------
-# Libraries (the load check first: it needs nothing else)
-# ----------------------------------------------------
 LoadCheck.lua
 Libs\Libs.xml
 PerfTrace.lua
 
-# ----------------------------------------------------
-# Addon Files
-# ----------------------------------------------------
-# Localization (before anything that builds labels as it loads)
 Locales\Locale.lua
 Locales\deDE.lua
 Locales\esES.lua
@@ -56,7 +49,7 @@ GamepadMode.lua
 Media.lua
 EditModeOverlays.lua
 
-# Modules (Logic)
+Modules\CombatFeedback.lua
 Modules\Chat.lua
 Modules\DamageMeter.lua
 Modules\ActionBars.lua
@@ -91,7 +84,6 @@ Modules\ItemStats.lua
 Modules\ObjectiveTracker.lua
 Modules\RadialMenu.lua
 
-# Settings panel
 Launcher.lua
 Perf.lua
 TaintWatch.lua

@@ -11,6 +11,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Lua 5.1 parser
         run: sudo apt-get update && sudo apt-get install -y lua5.1
+      - name: Test combat feedback
+        run: lua5.1 tools/tests/combat-feedback.lua
       - name: Validate addon paths
         run: python3 .github/flareui-ci/check-paths.py .
       - name: Parse Lua 5.1 (approximation, not WoW runtime)

@@ -147,6 +147,7 @@
   "Modules/BossFrames.lua",
   "Modules/BuffReminders.lua",
   "Modules/Chat.lua",
+  "Modules/CombatFeedback.lua",
   "Modules/DamageMeter.lua",
   "Modules/Fishing.lua",
   "Modules/FlagCarriers.lua",

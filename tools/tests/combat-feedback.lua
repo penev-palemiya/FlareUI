@@ -119,4 +119,6 @@ frame.scripts.OnEvent(frame, "UNIT_COMBAT", "player", "WOUND", "secret", "secret
 SlashCmdList.FLAREUI("combattext debug")
 SlashCmdList.FLAREUI("combattext")
 assert(frame.event == nil)
+frame.scripts.OnEvent(frame, "UNIT_COMBAT", "player", "WOUND", nil, 999)
+assert(frame.scripts.OnUpdate == nil)
 print("PASS: shared stream, burst spacing, capacity, move, offsets, routing and secret input")

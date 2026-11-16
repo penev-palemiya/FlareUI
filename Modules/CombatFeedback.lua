@@ -86,6 +86,13 @@ local function event(_, _, unit, kind, flags, amount)
         elseif type(amount) == "number" then
             if amount > 0 then
                 add(kind == "WOUND" and "damage" or "heal", (kind == "WOUND" and "-" or "+") .. tostring(amount))
+                if kind == "WOUND" and readable(flags) and type(flags) == "string" then
+                    local key = flags == "BLOCK_REDUCED" and "BLOCK" or flags
+                    if key == "BLOCK" or key == "ABSORB" or key == "RESIST" then
+                        local label = _G["COMBAT_TEXT_" .. key] or _G[key]
+                        if readable(label) and type(label) == "string" then add("defense", label) end
+                    end
+                end
             elseif amount == 0 and kind == "WOUND" and readable(flags) and DEFENSE[flags] then
                 local label = _G["COMBAT_TEXT_" .. flags] or _G[flags]
                 if readable(label) and type(label) == "string" then add("defense", label) end
